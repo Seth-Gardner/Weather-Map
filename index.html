@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather Map</title>
+  <link rel="stylesheet" href="css/weather_map.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+  <script src='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css' rel='stylesheet' />
+
+</head>
+<body>
+
+<nav class="navbar bg-dark" id="nav-bar">
+  <div class="container-fluid">
+    <a class="nav-word p-0" href="#">
+      <div id="title">Weather App</div>
+    </a>
+    <div class="d-flex nav-word" id="city-text">Current City<div id="currentCity">: San Antonio</div></div>
+
+  </div>
+</nav>
+<div class="overridden">.</div>
+<div class="d-flex align-items-center overridden">
+  <div class="mx-3 word">Place</div>
+  <input class="form-control form-control-sm mx-3" type="text" placeholder="City, State" style="max-width: 10%; background-color: #1f232b; color: #c2d0dc" id="input">
+  <button type="button" class="btn btn-secondary btn-sm" id="find-button">Find</button>
+</div>
+<div class="overridden">.</div>
+
+<div class="row card-text overridden m-0 pb-2" style="max-width: 100%" id="mainDiv">
+
+</div>
+<div id='map' style='width: 100%; height: 400px;'></div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.min.js"></script>
+<script src="jquery/jquery.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+<script src="js/keys.js"></script>
+<script>
+  $(document).ready(function(){
+    var coordinate2 = [-98.4916, 29.4252]
+    $.get(`https://api.openweathermap.org/data/2.5/onecall?`, {
+      APPID: openweatherAPIKey,
+      lat:coordinate2[1],
+      lon:coordinate2[0],
+      units: "imperial"
+    }).done(function(data) {
+      for (let i = 0; i < 5; i++) {
+        let day = new Date(data.daily[i].dt * 1000)
+        $('#mainDiv').append(`
+                          <div class="col ml-3">
+                              <div class="card text-center" style="background-color: #677078; ">
+                                  <div class="card-header bg-dark" style="color: #c3d0dc">
+                                          ` + (day.getMonth() + 1) + `/` + day.getDate() + `
+                                  </div>
+                                  <div class="" >
+                                      <ul class="list-group list-group-flush">
+                                          <li class="list-group-item" id="list"> ${data.daily[i].temp.max} / ${data.daily[i].temp.min} <br> <img src="http://openweathermap.org/img/wn/${data.daily[i].weather[0].icon}@2x.png" alt="" style="width: 60px; height: auto"></li>
+                                          <li class="list-group-item text-left" id="list">Description: <strong>${data.daily[i].weather[0].description}</strong></li>
+                                          <li class="list-group-item text-left" id="list">Humidity: <strong>${data.daily[i].humidity}</strong></li>
+                                          <li class="list-group-item text-left" id="list">Wind: <strong>${data.daily[i].wind_speed}</strong></li>
+                                          <li class="list-group-item text-left" id="list">Pressure: <strong>${data.daily[i].pressure}</strong></li>
+                                      </ul>
+                                  </div>
+                              </div>
+                          </div>`)
+      }
+    });
+
+    mapboxgl.accessToken = mapboxAPIKey;
+    var map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/dark-v10',
+      zoom: 10,
+      center: coordinate2
+    });
+    function geocode(search, token) {
+      var baseUrl = 'https://api.mapbox.com';
+      var endPoint = '/geocoding/v5/mapbox.places/';
+      return fetch(baseUrl + endPoint + encodeURIComponent(search) + '.json' + "?" + 'access_token=' + token)
+              .then(function(res) {
+                return res.json();
+                // to get all the data from the request, comment out the following three lines...
+              }).then(function(data) {
+                return data.features[0].center;
+              });
+    }
+    var newCity = ""
+    $('#find-button').click(function(){
+      geocode(document.getElementById('input').value, mapboxAPIKey).then(function (value){
+        $('#mainDiv').html("")
+        coordinate2 = value,
+                map.flyTo({
+                  center: [
+                    coordinate2[0],
+                    coordinate2[1]
+                  ],
+                  essential: true // this animation is considered essential with respect to prefers-reduced-motion
+                });
+        $.get(`https://api.openweathermap.org/data/2.5/onecall?`, {
+          APPID: openweatherAPIKey,
+          lat:coordinate2[1],
+          lon:coordinate2[0],
+          units: "imperial"
+        }).done(function(data) {
+          console.log(data)
+          for (let i = 0; i < 5; i++) {
+            let day = new Date(data.daily[i].dt * 1000)
+            $('#mainDiv').append(`
+                          <div class="col ml-3">
+                              <div class="card text-center " style="background-color: #677078;">
+                                  <div class="card-header bg-dark" style="color: #c3d0dc">
+                                      ` + (day.getMonth() + 1) + `/` + day.getDate() + `
+                                  </div>
+                                  <div class="" >
+                                      <ul class="list-group list-group-flush">
+                                          <li class="list-group-item" id="list"> ${data.daily[i].temp.max} / ${data.daily[i].temp.min} <br> <img src="http://openweathermap.org/img/wn/${data.daily[i].weather[0].icon}@2x.png" alt="" style="width: 60px; height: auto"></li>
+                                          <li class="list-group-item text-left" id="list">Description: <strong>${data.daily[i].weather[0].description}</strong></li>
+                                          <li class="list-group-item text-left" id="list">Humidity: <strong>${data.daily[i].humidity}</strong></li>
+                                          <li class="list-group-item text-left" id="list">Wind: <strong>${data.daily[i].wind_speed}</strong></li>
+                                          <li class="list-group-item text-left" id="list">Pressure: <strong>${data.daily[i].pressure}</strong></li>
+                                      </ul>
+                                  </div>
+                              </div>
+                          </div>`)
+          }
+
+        });
+        newCity = document.getElementById('input').value
+        $('#currentCity').html(": " + newCity)
+
+
+
+      });
+    });
+  });
+</script>
+</body>
+</html>
